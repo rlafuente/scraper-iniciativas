@@ -75,3 +75,4 @@ Afazeres
 --------
 
   * Processar corretamente os campos `info` dos eventos para determinar links e outras informações que lá existem
+  * Detetar entradas sobre a substituição do texto original ([exemplo](http://www.parlamento.pt/ActividadeParlamentar/Paginas/DetalheIniciativa.aspx?BID=38526))
