@@ -11,14 +11,10 @@ from itertools import chain
 from datetime import datetime as dt
 import json
 import codecs
-import unicodecsv as csv
 import click
 from zenlog import log
 import multiprocessing
 
-
-fieldnames = ['id', 'shortname', 'name', 'party', 'active', 'education', 'birthdate', 'occupation', 'current_jobs',
-              'jobs', 'commissions', 'mandates', 'awards', 'url', 'scrape_date']
 
 DEFAULT_MAX = 5000
 
@@ -125,10 +121,11 @@ def process_dep(i):
 
         for index, eventdate in enumerate(eventdates):
             event = {'date': eventdate.text}
-            event['eventtype'] = eventtypes[index].text.strip()
+            event['type'] = eventtypes[index].text.strip()
             info = eventinfos[index].text.strip()
             if info:
-                event['eventinfo'] = info
+                # TODO: Processar esta informação
+                event['info'] = info
             if not deprow.get('events'):
                 deprow['events'] = []
             deprow['events'].append(event)
@@ -163,22 +160,8 @@ def scrape(format, start=1, end=None, verbose=False, outfile='', indent=1, proce
 
     log.info("Saving to file %s..." % outfile)
     depsfp = codecs.open(outfile, 'w+', 'utf-8')
-    if format == "json":
-        depsfp.write(json.dumps(deprows, encoding='utf-8', ensure_ascii=False, indent=indent, sort_keys=True))
-        depsfp.close()
-    elif format == "csv":
-        writer = csv.DictWriter(depsfp, delimiter=",", quoting=csv.QUOTE_NONNUMERIC, quotechar='"', fieldnames=fieldnames)
-        writer.writeheader()
-        for rownumber in deprows:
-            row = deprows[rownumber]
-            row.pop("events")
-            for key in row:
-                if type(row[key]) == list:
-                    # convert lists to ;-separated strings
-                    row[key] = "; ".join(row[key])
-            writer.writerow(row)
-
-    log.info("Done.")
+    depsfp.write(json.dumps(deprows, encoding='utf-8', ensure_ascii=False, indent=indent, sort_keys=True))
+    depsfp.close()
     log.info("Done.")
 
 
@@ -193,9 +176,9 @@ def scrape(format, start=1, end=None, verbose=False, outfile='', indent=1, proce
 @click.option("-c", "--clear-cache", help="Clean the local webpage cache", is_flag=True)
 def main(format, start, end, verbose, outfile, indent, clear_cache, processes):
     if not outfile and format == "csv":
-        outfile = "deputados.csv"
+        outfile = "iniciativas.csv"
     elif not outfile and format == "json":
-        outfile = "deputados.json"
+        outfile = "iniciativas.json"
     if clear_cache:
         log.info("Clearing old cache...")
         shutil.rmtree("cache/")
