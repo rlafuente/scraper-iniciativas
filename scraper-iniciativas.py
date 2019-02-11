@@ -15,7 +15,6 @@ import click
 from zenlog import log
 import multiprocessing
 
-
 DEFAULT_MAX = 5000
 
 ROMAN_NUMERALS = {'I': 1, 'II': 2, 'III': 3, 'IV': 4, 'V': 5,
@@ -72,10 +71,10 @@ def getpage(url):
     cache_file = 'cache/' + url_hash
 
     if os.path.exists(cache_file):
-        log.debug("Cache hit for %s" % url)
+        # log.debug("Cache hit for %s" % url)
         page = file_get_contents(cache_file)
     else:
-        log.debug("Cache miss for %s" % url)
+        # log.debug("Cache miss for %s" % url)
         page = urllib.urlopen(url).read()
         file_put_contents(cache_file, page, utf8=True)
     return page
@@ -103,6 +102,7 @@ def parse_event_info(event, info):
         vote_info = info.find('span', id=RE_VOTEINFO)
 
         # funky parse loop for understanding how each party voted
+        # I really have to refactor this, please pester me if you need it -- rlafuente
         results = {'for': [], 'against': [], 'abstain': []}
         current_vote = None
         for c in vote_info.contents:
@@ -120,22 +120,32 @@ def parse_event_info(event, info):
                 if c.startswith(u'Contra:'):
                     current_vote = "against"
                     if not c == u'Contra:':
-                        # cases with one voter, in one line
+                        # cases with voters in one line (individual MPs)
                         # ex. "Abstenção: Isabel Oneto (PS)"
-                        c = c.replace(u'Contra: ', '')
-                        results[current_vote].append(c)
+                        c = c.replace(u'Contra: ', '').split(', ')
+                        for mp in c:
+                            if mp:
+                                results[current_vote].append(mp.strip(','))
                 elif c.startswith(u"A Favor:"):
                     current_vote = "for"
                     if not c == u'A Favor:':
-                        c = c.replace(u'A Favor: ', '')
-                        results[current_vote].append(c)
+                        c = c.replace(u'A Favor: ', '').split(', ')
+                        for mp in c:
+                            if mp:
+                                results[current_vote].append(mp.strip(','))
                 elif c.startswith(u"Abstenção:"):
                     current_vote = "abstain"
                     if not c == u'Abstenção:':
-                        c = c.replace(u'Abstenção: ', '')
-                        results[current_vote].append(c)
+                        c = c.replace(u'Abstenção: ', '').split(', ')
+                        for mp in c:
+                            if mp:
+                                results[current_vote].append(mp.strip(','))
                 else:
-                    log.error("Unrecognized vote string: %s" % c)
+                    log.warn("Orphan vote string: %s -- saving as voter" % c)
+                    c = c.split(', ')
+                    for mp in c:
+                        if mp:
+                            results[current_vote].append(mp)
 
         event['vote_info'] = results
         pass
